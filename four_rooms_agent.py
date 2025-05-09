@@ -1,27 +1,49 @@
 import gymnasium as gym
 import numpy as np
-from minigrid.wrappers import RGBImgPartialObsWrapper, ImgObsWrapper
+from minigrid.wrappers import SymbolicObsWrapper
 from stable_baselines3 import PPO
+from q_learning_lambda import QLearningLambda
 
-# Make the environment
-env = gym.make("MiniGrid-FourRooms-v0")
-env = RGBImgPartialObsWrapper(env)  # Get pixel observations
-env = ImgObsWrapper(env)            # Flatten observation space for CNN
+#Actions = {"left" : 0, "right" : 1, "forward" : 2}
 
-# Create PPO model
-model = PPO("CnnPolicy", env, verbose=1)
+# Map of object type to integers
+# OBJECT_TO_IDX = {
+#     "empty": 1,
+#     "wall": 2,
+#     "goal": 8,
+#     "agent": 10,
+# }
 
-# Train the model
-model.learn(total_timesteps=100_000)
 
-# Save the trained model
-model.save("ppo_fourrooms")
+"""
+obs['image'].type = np.ndarray
+obs['image'].shape = (19, 19, 3)
+(X, Y, OBJECT_IDX)
+"""
 
-# Optional: Test
-obs, _ = env.reset()
-done = False
-while not done:
-    action, _ = model.predict(obs)
-    obs, reward, terminated, truncated, _ = env.step(action)
-    done = terminated or truncated
-    env.render()
+
+
+
+
+def main() -> None:
+
+    # Make the environment
+    env = gym.make("MiniGrid-FourRooms-v0")
+
+    env_obs = SymbolicObsWrapper(env)
+    obs,_ = env_obs.reset()
+
+    print(obs["direction"])
+    print(obs['mission'])
+    print(f"{obs['image'].shape = } ")
+    agent = np.where(obs['image'][:, :, 2] == 10)
+    goal = np.where(obs['image'][:, :, 2] == 8)
+    print(f"{agent =}")
+    print(f"{goal = }")
+    q_learning_lambda = QLearningLambda(obs['image'], agent, goal)
+
+
+
+
+if __name__ == "__main__":
+    main()
