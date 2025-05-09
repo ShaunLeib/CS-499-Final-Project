@@ -1,7 +1,6 @@
 import gymnasium as gym
 import numpy as np
 from minigrid.wrappers import SymbolicObsWrapper
-from stable_baselines3 import PPO
 from q_learning_lambda import QLearningLambda
 
 #Actions = {"left" : 0, "right" : 1, "forward" : 2}
