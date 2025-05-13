@@ -22,11 +22,13 @@ class RLWrapper(ABC):
 
     def trial(self, max_iter : int) -> None:
         """
-        does an episode, then resets the env and Q values
+        Runs episodes on same env
+        Resets env every trial for 50 trials
         """
-        for i in range(max_iter):
+        for _ in range(50):
             self.reset()
-            self.episode()
+            for _ in range(max_iter):
+                self.episode()
 
 
     def format_state(self, obs) -> tuple[int]:

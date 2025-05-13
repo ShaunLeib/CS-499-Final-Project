@@ -1,5 +1,4 @@
 import numpy as np
-import random
 from rl_wrapper import RLWrapper
 
 class QLearningLambda(RLWrapper):
