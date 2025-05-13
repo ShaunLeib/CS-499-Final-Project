@@ -26,7 +26,7 @@ obs['image'].shape = (19, 19, 3)
 (X, Y, OBJECT_IDX)
 """
 
-def episode(env, max_steps):
+def random_episode(env, max_steps):
     for i in range(max_steps):
         action = env.action_space.sample()
         obs, reward, terminated, truncated, _ = env.step(action)
@@ -34,7 +34,7 @@ def episode(env, max_steps):
         if terminated or truncated:
             obs, _ = env.reset()
 
-def trail():
+def trial():
     pass
 
 
@@ -46,18 +46,13 @@ def main() -> None:
 
     env = SymbolicObsWrapper(env)
     obs, _ = env.reset()
-    print(type(env))
-    print(env)
 
     print(f"{obs['direction'] =}")
     print(obs['mission'])
     print(f"{obs['image'].shape = } ")
-    agent = np.where(obs['image'][:, :, 2] == 10)
-    goal = np.where(obs['image'][:, :, 2] == 8)
-    print(f"{agent =}")
-    print(f"{goal = }")
-    episode(env, 100)
-        
+    # random_episode(env, 100)
+    q_learning_agent = QLearningLambda(env, obs)
+    q_learning_agent.episode()
 
 
 

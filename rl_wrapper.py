@@ -1,41 +1,75 @@
+import numpy as np
+import random
+from abc import ABC, abstractmethod
 
-class RLWrapper():
+class RLWrapper(ABC):
     
-    def __init__(self, obs, agent, goal):
-        self.obs = obs
-        self.agent = agent
-        self.goal = goal
-        self.epsilon = 0.3 # change to value for e-greedy
-        self.alpha = 0.1 # change for learning rate
-        self.gamma = 0.99 # change for discount rate
-        self.states = [State(c[0], c[1], c[2]) for r in self.obs for c in r] # shape = (361,)
+    def __init__(self, env, obs):
+        self.env = env
+        self.obs = obs['image']
+        self.s_0 = self.format_state(obs)
+        self.state_action_pairs = self.generate_sap_indices()
+        self.Q = np.zeros((19, 19, 4, 3)) #(19, 19, 4,  3) (x, y, direction, action) (x, y, d) <- state
+        self.goal_id = np.where(obs['image'][:, :, 2] == 8)
+        # You need to set your hyperparams in child class
 
-
-    def next_state(self):
-        # s <- s'
-        # Do we need a state class?
+    @abstractmethod
+    def episode(self):
+        """
+        Implement in your class
+        """
         pass
 
-    def calc_reward(self) -> float:
-        # A reward of ‘1 - 0.9 * (step_count / max_steps)’ is given for success, and ‘0’ for failure.
-        pass
+    def trial(self, max_iter : int) -> None:
+        """
+        does an episode, then resets the env and Q values
+        """
+        for i in range(max_iter):
+            self.reset()
+            self.episode()
 
-    def check_terminal(self) -> bool:
-        # return T/F if s ==
-        pass
 
-
-class State():
-    def __init__(self, x, y, obj_id):
-        self.q = 0 # Q value
-        self.e = 0 # eligibility trace
-        self.x = x # x coord
-        self.y = y # y coord
-        self.obj_id = obj_id
-
-    def __str__(self):
-        return f"{self.x}, {self.y}, {self.obj_id}"
+    def format_state(self, obs) -> tuple[int]:
+        """
+        State should be in (x, y, d)
+        """
+        agent = np.where(obs['image'][:, :, 2] == 10)
+        return (int(agent[0][0]), int(agent[1][0]), int(obs['direction']))
     
     
+    def best_action(self, state : tuple[int], epsilon : float) -> int:
+        """
+        use epsilon greedy to generate the next best action based on Q values
+        """
+        exploit_prob = 1 - epsilon + epsilon / 3
+        if random.random() < exploit_prob:
+            #exploit
+            print("exploit")
+            return np.argmax(self.Q[state])
+        else:
+            #explore CHANGE: do we need to remove the best action?
+            print("explore")
+            return random.choice([0,1,2])
+        
+    def generate_sap_indices(self) -> np.ndarray:
+        """
+        Generates all state action pair indices
+        """
+        i, j, k = np.indices((19, 19, 4)) # (x, y, d)
+        i = np.repeat(i.flatten(), 3)
+        j = np.repeat(j.flatten(), 3)
+        k = np.repeat(k.flatten(), 3)
 
+        actions = np.tile(np.arange(3), 19 * 19 * 4)
+        state_action_pairs = np.stack((i, j, k, actions), axis=1)
+        return state_action_pairs
+    
+    def reset(self) -> None:
+        """
+        Reset Q values and four rooms environment
+        Randomizes the agent, goal, and wall locations
+        """
+        self.Q = np.zeros((19, 19, 4, 3)) #(19, 19, 3) (x, y, direction, action) (x, y, d) <- state
+        obs, _ = self.env.reset()
 
+    
