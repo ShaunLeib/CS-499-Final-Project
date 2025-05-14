@@ -3,7 +3,7 @@ import numpy as np
 from minigrid.wrappers import SymbolicObsWrapper
 from q_learning_lambda import QLearningLambda
 
-#Actions = {"left" : 0, "right" : 1, "forward" : 2}
+#Actions = {"left" : 0, "right" : 1, "forward" : 2} -> Actions = {"left" : 2, "right" : 1, "forward" : 0}
 
 # Map of object type to integers
 # OBJECT_TO_IDX = {
@@ -34,25 +34,19 @@ def random_episode(env, max_steps):
         if terminated or truncated:
             obs, _ = env.reset()
 
-def trial():
-    pass
-
-
 
 def main() -> None:
 
     # Make the environment
-    env = gym.make("MiniGrid-FourRooms-v0", render_mode = "human") # add  render_mode = "human" for visual
+    env = gym.make("MiniGrid-FourRooms-v0", max_steps = 50, render_mode = "human") # add  render_mode = "human" for visual
 
     env = SymbolicObsWrapper(env)
-    obs, _ = env.reset()
+    # obs, _ = env.reset()
 
-    print(f"{obs['direction'] =}")
-    print(obs['mission'])
-    print(f"{obs['image'].shape = } ")
     # random_episode(env, 100)
-    q_learning_agent = QLearningLambda(env, obs)
-    q_learning_agent.episode()
+    q_learning_agent = QLearningLambda(env)
+    q_learning_agent.trial(50)
+    env.close()
 
 
 

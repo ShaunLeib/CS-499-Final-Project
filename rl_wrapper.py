@@ -1,16 +1,15 @@
 import numpy as np
 import random
 from abc import ABC, abstractmethod
+import copy
 
 class RLWrapper(ABC):
     
-    def __init__(self, env, obs):
+    def __init__(self, env):
         self.env = env
-        self.obs = obs['image']
-        self.s_0 = self.format_state(obs)
         self.state_action_pairs = self.generate_sap_indices()
         self.Q = np.zeros((19, 19, 4, 3)) #(19, 19, 4,  3) (x, y, direction, action) (x, y, d) <- state
-        self.goal_id = np.where(obs['image'][:, :, 2] == 8)
+        self.seeds = [48, 24,  1024, 8888]
         # You need to set your hyperparams in child class
 
     @abstractmethod
@@ -20,15 +19,16 @@ class RLWrapper(ABC):
         """
         pass
 
-    def trial(self, max_iter : int) -> None:
+    def trial(self, episode_count : int) -> None:
         """
         Runs episodes on same env
         Resets env every trial for 50 trials
         """
-        for _ in range(50):
-            self.reset()
-            for _ in range(max_iter):
+        for s in self.seeds:
+            self.reset_env(s)
+            for _ in range(episode_count):
                 self.episode()
+                self.restore_init_env_state(s)
 
 
     def format_state(self, obs) -> tuple[int]:
@@ -46,11 +46,9 @@ class RLWrapper(ABC):
         exploit_prob = 1 - epsilon + epsilon / 3
         if random.random() < exploit_prob:
             #exploit
-            print("exploit")
-            return np.argmax(self.Q[state])
+            return (np.argmax(self.Q[state]) + 2) % 3 # + 2 % 3 is done to make forward the main move instead of left
         else:
             #explore CHANGE: do we need to remove the best action?
-            print("explore")
             return random.choice([0,1,2])
         
     def generate_sap_indices(self) -> np.ndarray:
@@ -66,12 +64,20 @@ class RLWrapper(ABC):
         state_action_pairs = np.stack((i, j, k, actions), axis=1)
         return state_action_pairs
     
-    def reset(self) -> None:
+    def restore_init_env_state(self, s : int) -> None:
+        """
+        Used to reset episode to og starting locations
+        Doesn't reset Q values
+        """
+        obs, _ = self.env.reset(seed=s)
+        self.obs = obs['image']
+    
+    def reset_env(self, s : int) -> None:
         """
         Reset Q values and four rooms environment
-        Randomizes the agent, goal, and wall locations
+        Randomizes acording to seed (s) the agent , goal, and wall locations
         """
         self.Q = np.zeros((19, 19, 4, 3)) #(19, 19, 3) (x, y, direction, action) (x, y, d) <- state
-        obs, _ = self.env.reset()
-
-    
+        obs, _ = self.env.reset(seed=s)
+        self.obs = obs['image']
+        self.s_0 = self.format_state(obs)   
