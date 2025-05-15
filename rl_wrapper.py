@@ -1,33 +1,39 @@
 import numpy as np
 import random
 from abc import ABC, abstractmethod
-import copy
+import matplotlib.pyplot as plt
 
 class RLWrapper(ABC):
     
-    def __init__(self, env):
+    def __init__(self, env, trail_count : int, episode_count : int, randomize : bool):
         self.env = env
         self.state_action_pairs = self.generate_sap_indices()
         self.Q = np.zeros((19, 19, 4, 3)) #(19, 19, 4,  3) (x, y, direction, action) (x, y, d) <- state
-        self.seeds = [48, 24,  1024, 8888]
+        self.episode_count = episode_count
+        self.domain_randomize = randomize
+        if randomize:
+            self.seeds = [48, 24] # 1024, 8888
+        else:
+            self.seeds = [24] * trail_count
+        self.R = np.zeros((len(self.seeds), self.episode_count)) # save the rewards for each episode for each trial for learning curve graph
         # You need to set your hyperparams in child class
 
     @abstractmethod
-    def episode(self):
+    def episode(self, t: int, i : int) -> None:
         """
         Implement in your class
         """
         pass
 
-    def trial(self, episode_count : int) -> None:
+    def trial(self) -> None:
         """
         Runs episodes on same env
         Resets env every trial for 50 trials
         """
-        for s in self.seeds:
+        for t, s in enumerate(self.seeds):
             self.reset_env(s)
-            for _ in range(episode_count):
-                self.episode()
+            for i in range(self.episode_count):
+                self.episode(t, i)
                 self.restore_init_env_state(s)
 
 
@@ -46,7 +52,10 @@ class RLWrapper(ABC):
         exploit_prob = 1 - epsilon + epsilon / 3
         if random.random() < exploit_prob:
             #exploit
-            return (np.argmax(self.Q[state]) + 2) % 3 # + 2 % 3 is done to make forward the main move instead of left
+            if np.all(self.Q[state] == 0.0):
+                return 2
+            return np.argmax(self.Q[state])
+            # return (np.argmax(self.Q[state]) + 2) % 3 # + 2 % 3 is done to make forward the main move instead of left
         else:
             #explore CHANGE: do we need to remove the best action?
             return random.choice([0,1,2])
@@ -81,3 +90,13 @@ class RLWrapper(ABC):
         obs, _ = self.env.reset(seed=s)
         self.obs = obs['image']
         self.s_0 = self.format_state(obs)   
+
+    def plot_learning_curve(self) -> None:
+        """
+        Calc average returns across episodes and plot
+        """
+        avg_r = np.mean(self.R, axis = 0)
+        plt.plot(avg_r)
+        plt.xlabel("Episodes")
+        plt.ylabel("Reward")
+        plt.show()
