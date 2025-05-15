@@ -38,13 +38,13 @@ def random_episode(env, max_steps):
 def main() -> None:
 
     # Make the environment
-    env = gym.make("MiniGrid-FourRooms-v0", max_steps = 100) # add  render_mode = "human" for visual
+    env = gym.make("MiniGrid-FourRooms-v0", max_steps = 1000) # add  render_mode = "human" for visual
 
     env = SymbolicObsWrapper(env)
     # obs, _ = env.reset()
 
     # random_episode(env, 100)
-    num_trials = 4
+    num_trials = 2
     num_episodes = 100
     q_learning_agent = QLearningLambda(env, num_trials, num_episodes, randomize = False)
     q_learning_agent.trial()

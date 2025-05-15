@@ -8,13 +8,12 @@ class RLWrapper(ABC):
     def __init__(self, env, trail_count : int, episode_count : int, randomize : bool):
         self.env = env
         self.state_action_pairs = self.generate_sap_indices()
-        self.Q = np.zeros((19, 19, 4, 3)) #(19, 19, 4,  3) (x, y, direction, action) (x, y, d) <- state
         self.episode_count = episode_count
         self.domain_randomize = randomize
         if randomize:
             self.seeds = [48, 24] # 1024, 8888
         else:
-            self.seeds = [24] * trail_count
+            self.seeds = [14] * trail_count
         self.R = np.zeros((len(self.seeds), self.episode_count)) # save the rewards for each episode for each trial for learning curve graph
         # You need to set your hyperparams in child class
 
@@ -24,6 +23,7 @@ class RLWrapper(ABC):
         Implement in your class
         """
         pass
+
 
     def trial(self) -> None:
         """
@@ -86,7 +86,7 @@ class RLWrapper(ABC):
         Reset Q values and four rooms environment
         Randomizes acording to seed (s) the agent , goal, and wall locations
         """
-        self.Q = np.zeros((19, 19, 4, 3)) #(19, 19, 3) (x, y, direction, action) (x, y, d) <- state
+        self.Q = np.zeros((19, 19, 4, 3)) #(19, 19, 4, 3) (x, y, direction, action) (x, y, d) <- state
         obs, _ = self.env.reset(seed=s)
         self.obs = obs['image']
         self.s_0 = self.format_state(obs)   

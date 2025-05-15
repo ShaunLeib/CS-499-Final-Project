@@ -7,7 +7,7 @@ class QLearningLambda(RLWrapper):
         self.epsilon = 0.5
         self.gamma = 0.95
         self.alpha = 0.1
-        self.lamb = 0.9
+        self.lamb = 0.5
         self.e = np.zeros((19, 19, 4, 3)) # Trace variable (19, 19, 4,  3) (x, y, direction, action)
         
 
