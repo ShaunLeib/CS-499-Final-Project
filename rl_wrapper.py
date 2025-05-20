@@ -1,7 +1,6 @@
 import numpy as np
 import random
 from abc import ABC, abstractmethod
-import matplotlib.pyplot as plt
 
 class RLWrapper(ABC):
     
@@ -9,13 +8,18 @@ class RLWrapper(ABC):
         self.env = env
         self.state_action_pairs = self.generate_sap_indices()
         self.episode_count = episode_count
-        self.domain_randomize = randomize
-        if randomize:
-            self.seeds = [48, 24] # 1024, 8888
-        else:
-            self.seeds = [14] * trail_count
-        self.R = np.zeros((len(self.seeds), self.episode_count)) # save the rewards for each episode for each trial for learning curve graph
-        # You need to set your hyperparams in child class
+        self.randomize = randomize
+        self.trail_count = trail_count
+        # if self.randomize:
+            # self.seeds = np.random.randint(0, 1000, size=trail_count) # 1024, 8888
+            # self.seeds = [14, 24, 48]
+        # else:
+            # self.seeds = [14] * trail_count
+        self.Q = np.zeros((19, 19, 4, 3)) #(19, 19, 4, 3) (x, y, direction, action) (x, y, d) <- state
+        self.R = np.zeros((self.trail_count, self.episode_count)) # save the rewards for each episode for each trial for learning curve graph
+
+        self.gamma = 0.95
+        # You need to set your specific hyperparams in child class
 
     @abstractmethod
     def episode(self, t: int, i : int) -> None:
@@ -27,14 +31,45 @@ class RLWrapper(ABC):
 
     def trial(self) -> None:
         """
-        Runs episodes on same env
-        Resets env every trial for 50 trials
+        Randomize = False:
+            - runs for trail_count (50) and uses the same seed for every episode. 
+            - resets Q values every trial, but keeps them for episodes
+        Randomize = True:
+            - Runs 1 trial but should be for lots of episodes
+            - New seed every episode for domain randomization
+            - Q values are saved for each episode & aren't reset (only 1 trial)
         """
-        for t, s in enumerate(self.seeds):
-            self.reset_env(s)
+        self.seed = int(np.random.randint(0, 1000, size = 1))
+        for t in range(self.trail_count):
+            self.reset_env(self.seed)     
             for i in range(self.episode_count):
+                if self.randomize:
+                    self.seed = int(np.random.randint(0, 1000, size = 1))
                 self.episode(t, i)
-                self.restore_init_env_state(s)
+                print(f"{t} {i} : {self.R[t, i]}")
+                self.restore_init_env_state(self.seed)
+
+    def test(self, new_env) -> None:
+        """
+        For part b domain randomization. This tests a new env using the Q values we learned in trial()
+        """
+        self.env = new_env
+        test_seed = int(np.random.randint(0, 1000, size=1))
+        # test_seed = 14
+        print(f"{test_seed = }")
+        self.epsilon = 0.4 # exploit more for testing? 
+        self.restore_init_env_state(test_seed)
+        self.episode(-1, -1)
+
+    def visual(self, new_env):
+        """
+        Uses a new environment to show visually the learned policy
+        """
+        self.env = new_env
+        self.epsilon = 0.0 # only exploit for demonstration? 
+        self.restore_init_env_state(self.seed)
+        self.episode(-1, -1)
+
 
 
     def format_state(self, obs) -> tuple[int]:
@@ -55,7 +90,6 @@ class RLWrapper(ABC):
             if np.all(self.Q[state] == 0.0):
                 return 2
             return np.argmax(self.Q[state])
-            # return (np.argmax(self.Q[state]) + 2) % 3 # + 2 % 3 is done to make forward the main move instead of left
         else:
             #explore CHANGE: do we need to remove the best action?
             return random.choice([0,1,2])
@@ -76,10 +110,12 @@ class RLWrapper(ABC):
     def restore_init_env_state(self, s : int) -> None:
         """
         Used to reset episode to og starting locations
-        Doesn't reset Q values
+        Doesn't reset Q values, doesn't
         """
         obs, _ = self.env.reset(seed=s)
-        self.obs = obs['image']
+        self.obs = obs
+        self.goal = np.where(self.obs['image'][:, :, 2] == 8)
+        self.s_0 = self.format_state(self.obs)        
     
     def reset_env(self, s : int) -> None:
         """
@@ -87,16 +123,7 @@ class RLWrapper(ABC):
         Randomizes acording to seed (s) the agent , goal, and wall locations
         """
         self.Q = np.zeros((19, 19, 4, 3)) #(19, 19, 4, 3) (x, y, direction, action) (x, y, d) <- state
-        obs, _ = self.env.reset(seed=s)
-        self.obs = obs['image']
-        self.s_0 = self.format_state(obs)   
+        self.restore_init_env_state(s)
+        self.goal = np.where(self.obs['image'][:, :, 2] == 8)
+        self.s_0 = self.format_state(self.obs)   
 
-    def plot_learning_curve(self) -> None:
-        """
-        Calc average returns across episodes and plot
-        """
-        avg_r = np.mean(self.R, axis = 0)
-        plt.plot(avg_r)
-        plt.xlabel("Episodes")
-        plt.ylabel("Reward")
-        plt.show()

@@ -4,22 +4,21 @@ from rl_wrapper import RLWrapper
 class QLearningLambda(RLWrapper):
     def __init__(self, env, trail_count : int, episode_count : int, randomize : bool):
         super().__init__(env, trail_count, episode_count, randomize)
-        self.epsilon = 0.5
-        self.gamma = 0.95
-        self.alpha = 0.1
+        self.alpha = 0.0005 # 0.05 for part a
         self.lamb = 0.5
+        self.epsilon = 0.7 # 0.6 for part a
         self.e = np.zeros((19, 19, 4, 3)) # Trace variable (19, 19, 4,  3) (x, y, direction, action)
         
 
     def episode(self, t: int, i : int) -> None:
         s = self.s_0
-        a = self.best_action(s, 0.0) # CHANGE: should be argmax(of q values of adj states)
+        a = self.best_action(s, 0.0) 
         terminated = False # Reach goal
         truncated = False # max_steps reached
         while terminated == False and truncated == False:
             obs, r, terminated, truncated, _ = self.env.step(a)
             s_prime = self.format_state(obs)
-            a_prime = self.best_action(s_prime, self.epsilon) # CHANGE: should be argmax(of q values of adj states) w/ (e-greedy)            
+            a_prime = self.best_action(s_prime, self.epsilon)       
             a_star = self.best_action(s_prime, 0.0)
             # print(f"{a_star = }, {a_prime = }")
             # print(f"star: {self.Q[s_prime[0], s_prime[1], s_prime[2], a_star]}, prime: {self.Q[s_prime[0], s_prime[1], s_prime[2], a_prime]}")
@@ -35,6 +34,7 @@ class QLearningLambda(RLWrapper):
             # Update Q-values for all state action pairs 
             x, y, d, actions = self.state_action_pairs[:, 0], self.state_action_pairs[:, 1], self.state_action_pairs[:, 2], self.state_action_pairs[:, 3]
             self.Q[x, y, d, actions] += self.alpha * err *  self.e[x, y, d, actions]
+
             if a_prime == a_star:
                 # Update/Decay all eligibility trace values 
                 self.e[x, y, d, actions] *= self.gamma * self.lamb
@@ -44,10 +44,10 @@ class QLearningLambda(RLWrapper):
             # set s <- s' and a <- a'
             s = s_prime
             a = a_prime
-        self.R[t, i] = r
-        print(f"REWARD {r}")
-        # self._print_q_values()
-        print(f"{terminated = } {truncated = }")
+        if t != -1 and i != -1:
+            self.R[t, i] = r
+        else:
+            print(f"REWARD {r}")
 
     def _print_q_values(self):
         non_zero_q = np.where(self.Q != 0.0)
