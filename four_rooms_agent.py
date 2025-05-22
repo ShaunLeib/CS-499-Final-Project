@@ -53,22 +53,22 @@ def part_a():
     final_env = gym.make("MiniGrid-FourRooms-v0", max_steps = 2000, render_mode = "human") # add  render_mode = "human" for visual
     final_env = SymbolicObsWrapper(final_env)
 
-    num_trials = 1
-    num_episodes = 100
+    num_trials = 50
+    num_episodes = 50
     q_learning_agent = QLearningLambda(train_env, num_trials, num_episodes, randomize = False)
     q_learning_agent.trial()
     q_learning_agent.visual(final_env)
     plot_learning_curve(q_learning_agent, None) # replace None with SARSA agent
 
 def part_b():
-    train_env = gym.make("MiniGrid-FourRooms-v0", max_steps = 40000)
+    train_env = gym.make("MiniGrid-FourRooms-v0", max_steps = 20000)
     train_env = SymbolicObsWrapper(train_env)
     num_trials = 1
-    num_episodes = 1000
+    num_episodes = 10
     q_learning_agent = QLearningLambda(train_env, num_trials, num_episodes, randomize = True)
     q_learning_agent.trial()
 
-    test_env = gym.make("MiniGrid-FourRooms-v0", max_steps = 40000, render_mode = "human") # add  render_mode = "human" for visual
+    test_env = gym.make("MiniGrid-FourRooms-v0", max_steps = 20000, render_mode = "human") # add  render_mode = "human" for visual
     test_env = SymbolicObsWrapper(test_env)
     q_learning_agent.test(test_env)
     train_env.close()
@@ -76,8 +76,8 @@ def part_b():
 
 
 def main() -> None:
-    # part_a()
-    part_b()
+    part_a()
+    # part_b()
 
    
 

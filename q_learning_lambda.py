@@ -4,9 +4,10 @@ from rl_wrapper import RLWrapper
 class QLearningLambda(RLWrapper):
     def __init__(self, env, trail_count : int, episode_count : int, randomize : bool):
         super().__init__(env, trail_count, episode_count, randomize)
-        self.alpha = 0.0005 # 0.05 for part a
+        self.alpha = 0.01
+        # self.alpha = 0.00001 # 0.05 for part a
         self.lamb = 0.5
-        self.epsilon = 0.7 # 0.6 for part a
+        self.epsilon = 0.6 # 0.6 for part a
         self.e = np.zeros((19, 19, 4, 3)) # Trace variable (19, 19, 4,  3) (x, y, direction, action)
         
 
@@ -17,12 +18,11 @@ class QLearningLambda(RLWrapper):
         truncated = False # max_steps reached
         while terminated == False and truncated == False:
             obs, r, terminated, truncated, _ = self.env.step(a)
+            self.env.render()
+
             s_prime = self.format_state(obs)
             a_prime = self.best_action(s_prime, self.epsilon)       
             a_star = self.best_action(s_prime, 0.0)
-            # print(f"{a_star = }, {a_prime = }")
-            # print(f"star: {self.Q[s_prime[0], s_prime[1], s_prime[2], a_star]}, prime: {self.Q[s_prime[0], s_prime[1], s_prime[2], a_prime]}")
-            self.env.render()
 
             # Calculate TD error
             err = r + self.gamma*self.Q[s_prime[0], s_prime[1], s_prime[2], a_star] - self.Q[s[0], s[1], s[2], a]
@@ -49,7 +49,7 @@ class QLearningLambda(RLWrapper):
         else:
             print(f"REWARD {r}")
 
-    def _print_q_values(self):
+    def _print_q_values(self) -> None:
         non_zero_q = np.where(self.Q != 0.0)
         print(f"{len(non_zero_q[0])}")
         for x, y, d, a in zip(*non_zero_q):

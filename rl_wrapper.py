@@ -57,7 +57,7 @@ class RLWrapper(ABC):
         test_seed = int(np.random.randint(0, 1000, size=1))
         # test_seed = 14
         print(f"{test_seed = }")
-        self.epsilon = 0.4 # exploit more for testing? 
+        self.epsilon = 0.6 # exploit more for testing? 
         self.restore_init_env_state(test_seed)
         self.episode(-1, -1)
 
