@@ -1,6 +1,8 @@
+import sys
 import gymnasium as gym
 import numpy as np
 from minigrid.wrappers import SymbolicObsWrapper
+from sarsa import SARSA
 from q_learning_lambda import QLearningLambda
 import matplotlib.pyplot as plt
 
@@ -40,9 +42,9 @@ def plot_learning_curve(agent1, agent2) -> None:
     Calc average returns across episodes and plot
     """
     avg_r_1 = np.mean(agent1.R, axis = 0)
-    # avg_r_2 = np.mean(agent2.R, axis = 0)
+    avg_r_2 = np.mean(agent2.R, axis = 0)
     plt.plot(avg_r_1)
-    # plt.plot(avg_r_2)
+    plt.plot(avg_r_2)
     plt.xlabel("Episodes")
     plt.ylabel("Reward")
     plt.show()
@@ -53,12 +55,23 @@ def part_a():
     final_env = gym.make("MiniGrid-FourRooms-v0", max_steps = 2000, render_mode = "human") # add  render_mode = "human" for visual
     final_env = SymbolicObsWrapper(final_env)
 
+<<<<<<< HEAD
     num_trials = 50
     num_episodes = 50
+=======
+    num_trials = 1
+    num_episodes = 100
+
+    sarsa_agent = SARSA(train_env, num_trials, num_episodes, randomize = False)
+    sarsa_agent.trial()
+    sarsa_agent.visual(final_env)
+
+>>>>>>> 332e90e8ad98f1413006779e7bd4e2091fb13546
     q_learning_agent = QLearningLambda(train_env, num_trials, num_episodes, randomize = False)
     q_learning_agent.trial()
     q_learning_agent.visual(final_env)
-    plot_learning_curve(q_learning_agent, None) # replace None with SARSA agent
+
+    plot_learning_curve(q_learning_agent, sarsa_agent) # replace None with q_learning_agent or sarsa_agent
 
 def part_b():
     train_env = gym.make("MiniGrid-FourRooms-v0", max_steps = 20000)
