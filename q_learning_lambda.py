@@ -47,6 +47,7 @@ class QLearningLambda(RLWrapper):
         if t != -1 and i != -1:
             self.R[t, i] = r
         else:
+            self.test_reward = r
             print(f"REWARD {r}")
 
     def _print_q_values(self) -> None:

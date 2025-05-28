@@ -3,23 +3,18 @@ import random
 from abc import ABC, abstractmethod
 
 class RLWrapper(ABC):
-    
     def __init__(self, env, trail_count : int, episode_count : int, randomize : bool):
         self.env = env
         self.state_action_pairs = self.generate_sap_indices()
         self.episode_count = episode_count
         self.randomize = randomize
         self.trail_count = trail_count
-        # if self.randomize:
-            # self.seeds = np.random.randint(0, 1000, size=trail_count) # 1024, 8888
-            # self.seeds = [14, 24, 48]
-        # else:
-            # self.seeds = [14] * trail_count
         self.Q = np.zeros((19, 19, 4, 3)) #(19, 19, 4, 3) (x, y, direction, action) (x, y, d) <- state
         self.R = np.zeros((self.trail_count, self.episode_count)) # save the rewards for each episode for each trial for learning curve graph
-
         self.gamma = 0.95
+        self.set_seed()
         # You need to set your specific hyperparams in child class
+
 
     @abstractmethod
     def episode(self, t: int, i : int) -> None:
@@ -27,6 +22,20 @@ class RLWrapper(ABC):
         Implement in your class
         """
         pass
+
+
+    def set_seed(self, s : int = None):
+        """
+        Creates a random seed if one is not provided 
+        Allows for setting of a defined seed or generation of new one
+        Returns:
+            provided seed or randomly generated one
+        """
+        if s is None:
+            self.seed = int(np.random.randint(0, 5000, size = 1))
+        else:
+            self.seed = s
+        return self.seed
 
 
     def trial(self) -> None:
@@ -39,37 +48,35 @@ class RLWrapper(ABC):
             - New seed every episode for domain randomization
             - Q values are saved for each episode & aren't reset (only 1 trial)
         """
-        self.seed = int(np.random.randint(0, 1000, size = 1))
         for t in range(self.trail_count):
             self.reset_env(self.seed)     
             for i in range(self.episode_count):
                 if self.randomize:
-                    self.seed = int(np.random.randint(0, 1000, size = 1))
+                    self.set_seed()
                 self.episode(t, i)
                 print(f"{t} {i} : {self.R[t, i]}")
                 self.restore_init_env_state(self.seed)
 
-    def test(self, new_env) -> None:
+
+    def test(self) -> None:
         """
         For part b domain randomization. This tests a new env using the Q values we learned in trial()
         """
-        self.env = new_env
-        test_seed = int(np.random.randint(0, 1000, size=1))
-        # test_seed = 14
-        print(f"{test_seed = }")
+        self.test_reward = 0.0
+        print(f"{self.seed = }")
         self.epsilon = 0.6 # exploit more for testing? 
-        self.restore_init_env_state(test_seed)
+        self.restore_init_env_state(self.seed)
         self.episode(-1, -1)
 
-    def visual(self, new_env):
+
+    def visual(self, new_env, e : float = 0.0):
         """
         Uses a new environment to show visually the learned policy
         """
         self.env = new_env
-        self.epsilon = 0.0 # only exploit for demonstration? 
+        self.epsilon = e # only exploit for demonstration? 
         self.restore_init_env_state(self.seed)
         self.episode(-1, -1)
-
 
 
     def format_state(self, obs) -> tuple[int]:
@@ -93,7 +100,8 @@ class RLWrapper(ABC):
         else:
             #explore CHANGE: do we need to remove the best action?
             return random.choice([0,1,2])
-        
+
+
     def generate_sap_indices(self) -> np.ndarray:
         """
         Generates all state action pair indices
@@ -107,6 +115,7 @@ class RLWrapper(ABC):
         state_action_pairs = np.stack((i, j, k, actions), axis=1)
         return state_action_pairs
     
+
     def restore_init_env_state(self, s : int) -> None:
         """
         Used to reset episode to og starting locations
@@ -117,6 +126,7 @@ class RLWrapper(ABC):
         self.goal = np.where(self.obs['image'][:, :, 2] == 8)
         self.s_0 = self.format_state(self.obs)        
     
+
     def reset_env(self, s : int) -> None:
         """
         Reset Q values and four rooms environment
@@ -126,4 +136,3 @@ class RLWrapper(ABC):
         self.restore_init_env_state(s)
         self.goal = np.where(self.obs['image'][:, :, 2] == 8)
         self.s_0 = self.format_state(self.obs)   
-

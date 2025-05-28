@@ -16,6 +16,7 @@ class SARSA(RLWrapper):
 
         while not terminated and not truncated: # loop until S terminates
             obs, r, terminated, truncated, _ = self.env.step(a) # take action A, oberse R, S'
+            self.env.render() # show visuals
             s_prime = self.format_state(obs)                    # extract S'
             a_prime = self.best_action(s_prime, self.epsilon)   # choose A' from S' using epsilon-greedy
             
@@ -32,7 +33,7 @@ class SARSA(RLWrapper):
             #     - self.Q[s[0], s[1], s[2], a]
             # )
 
-            self.env.render() # show visuals
+
 
             s = s_prime     # S <- S'
             a = a_prime     # A <- A'
@@ -40,4 +41,5 @@ class SARSA(RLWrapper):
         if t != -1 and i != -1:
             self.R[t, i] = r
         else:
+            self.test_reward = r
             print(f"REWARD {r}")
