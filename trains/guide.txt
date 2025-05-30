@@ -1,0 +1,343 @@
+1===
+50 trials, 
+60 episodes 
+max steps 20000
+alpha=0.1, 
+epsilon=0.6, decay of 0.99, min of 0.1
+changes seeds every 30 episodes.
+
+2===
+50 trials, 
+20 episodes 
+max steps 2000
+alpha=0.1, 
+epsilon=0.6, decay of 0.99, min of 0.1
+---test of seed 137 epsilson 0.1 for overshoot example
+
+3===
+50 trials, 
+20 episodes 
+max steps 4000
+alpha=0.1, 
+epsilon=0.6, decay of 0.99, min of 0.1
+additon of reward increase if its an empty space (hopefully avoiding wall hit spam)
+            if s_prime[:3] != s[:3]:  # if it actually moved
+                r += 0.005  # very small reward for progress
+
+4===
+12 trials, 
+2400 episodes 
+max steps 3000
+alpha=0.1, 
+epsilon=0.6, decay of 0.99, min of 0.1
+no extra punishes or reward alters
+=avg success rate 25% :/
+
+5===
+2 trials, 
+2400 episodes 
+max steps 3000
+alpha=0.1, 
+epsilon=0.6, decay of 0.99, min of 0.1
+reward tuning: 
+```
+            if s_prime == s:
+                r -= 0.1  # penalize staying in same state
+            
+            if a == 0 and s_prime[:2] != s[:2]:  # moved forward
+                r += 0.05
+            
+            # Turn-in-place detection
+            if s[:2] == s_prime[:2] and s[2] != s_prime[2] and a in [1, 2]:
+                r -= 0.3  # heavier penalty for turning without moving
+```
+
+6===
+50 trials, 
+30 episodes 
+max steps 3000
+alpha=0.1, 
+epsilon=0.6, decay of 0.99, min of 0.1
+random seed every 30 episodes
+reward tuning: 
+```
+*5 contents plus:*
+            # Small cost for every step to encourage efficiency
+            r -= 0.01
+
+*out of loop:* *this was in the wrong place for 6-8*
+        if r > 0:
+            steps_used = self.env.unwrapped.step_count
+            time_bonus = max(0, 1.0 - (steps_used / 3000))
+            self.Q[s[0], s[1], s[2], a] += self.alpha * time_bonus
+```
+
+7===
+*6 config but:*
+        self.Q = np.ones((19, 19, 4, 3)) * 0.5
+= better at going in longer lines it seems, more exploring around
+
+
+8===
+*7 config but:*
+	20 trials
+	random seed each time
+= better reward num but visually similar to 7, actually passed next to goal a lot before entering
+
+9===
+*8 config*
+20 trials, 
+120 episodes 
+max steps 3000
+alpha=0.1, 
+epsilon=0.6, decay of 0.996, min of 0.1
+random seed each time
+reward tuning: 
+```
+            if s_prime == s:
+                r -= 0.1  # penalize staying in same state
+            
+            if a == 0 and s_prime[:2] != s[:2]:  # moved forward
+                r += 0.05
+            
+            # Turn-in-place detection
+            if s[:2] == s_prime[:2] and s[2] != s_prime[2] and a in [1, 2]:
+                r -= 0.3  # heavier penalty for turning without moving
+            
+            # Small cost for every step to encourage efficiency
+            r -= 0.01
+
+*out of loop:*
+        if t != -1 and i != -1:
+            self.R[t, i] = r
+            if r > 0:  # episode ended by reaching the goal
+                self.success_count += 1 # debug
+                # self.Q[s[0], s[1], s[2], a] += self.alpha * 2.0 # incentive to read the goal state
+                steps_used = self.env.unwrapped.step_count
+                time_bonus = max(0, 1.0 - (steps_used / 3000))
+                self.Q[s[0], s[1], s[2], a] += self.alpha * time_bonus
+        else:
+            print(f"REWARD {r}")
+```
+=avg success rate 25% :/
+
+10===
+*9 config*
+3 trials, 
+2400 episodes 
+            if s_prime == s:
+                r -= 0.030  # penalize staying in same state
+            
+            if a == 0 and s_prime[:2] != s[:2]:  # moved forward
+                r += 0.070
+            
+            if s[2] != s_prime[2] and a in [1, 2]:  # turned
+                r -= 0.050  # mild discouragement
+
+            if s[:2] == s_prime[:2] and a in [1, 2]:  # turned but didn't move
+                r -= 0.070  # heavier discouragement
+            
+            r -= 0.005 # cost for every step
+
+11===
+*10 config*
+decay of 0.9985 (aka go to 0.1 over 1194 episodes instead of just 120)
+=avg success rate 25% :/
+
+
+12===
+1 trial
+3200 episodes
+max steps 2000
+alpha=0.1 
+epsilon=0.7, decay of 0.998, min of 0.1
+random seed every 80 episodes
+self.Q = np.ones((19, 19, 4, 3)) * 0.5)  # (still using this! oops!)
+```
+            # Penalize standing still or bouncing off walls
+            if s_prime == s:
+                r -= 0.05
+
+            # Encourage forward motion (position change)
+            if a == 0 and s_prime[:2] != s[:2]:
+                r += 0.08
+
+            # Mild penalty for any turn (direction change)
+            if s[2] != s_prime[2] and a in [1, 2]:
+                r -= 0.02
+
+            # Small time penalty for each step
+            r -= 0.005
+*out of loop:*
+        if t != -1 and i != -1:
+            self.R[t, i] = r
+            if r > 0:  # episode ended by reaching the goal
+                self.success_count += 1 # debug
+                # self.Q[s[0], s[1], s[2], a] += self.alpha * 2.0 # incentive to read the goal state
+                steps_used = self.env.unwrapped.step_count
+                time_bonus = max(0, 1.0 - (steps_used / 3000))
+                self.Q[s[0], s[1], s[2], a] += self.alpha * time_bonus
+```
+=no good
+
+
+13===
+*12 config + if a == 0 and self.is_facing_wall(obs["image"], s[2]): r -=0.05*;
+1 trial
+80000 episodes
+max steps 2000
+alpha=0.1 
+epsilon=0.7, decay of 0.99995, min of 0.1
+random seed every 80 episodes
+self.Q = np.zeros((19, 19, 4, 3)) * 0.5)
+```
+            # Penalize actual forward wall bumps
+            if a == 0 and self.is_facing_wall(obs["image"], s[2]):
+                r -=0.05
+
+            # Encourage forward motion (position change)
+            if a == 0 and s_prime[:2] != s[:2]:
+                r += 0.08
+
+            # Mild penalty for any turn (direction change)
+            if s[2] != s_prime[2] and a in [1, 2]:
+                r -= 0.02
+
+            # Small time penalty for each step
+            r -= 0.005
+*out of loop:*
+        if t != -1 and i != -1:
+            self.R[t, i] = r
+            if r > 0:  # episode ended by reaching the goal
+                self.success_count += 1 # debug
+                # self.Q[s[0], s[1], s[2], a] += self.alpha * 2.0 # incentive to read the goal state
+                steps_used = self.env.unwrapped.step_count
+                time_bonus = max(0, 1.0 - (steps_used / 3000))
+                self.Q[s[0], s[1], s[2], a] += self.alpha * time_bonus
+```
+=25760/80000
+
+
+14===
+1 trial
+60000 episodes
+random seed every 60 episodes
+max steps 2000
+alpha=0.1 
+epsilon=0.7, min of 0.1
+decay of 0.999965 (reaches min 0.1 at 92.5% trained)
+self.Q = np.zeros((19, 19, 4, 3))
+```
+            # Penalize actual forward wall bumps
+            if a == 0 and self.is_facing_wall(obs["image"], s[2]):
+                r -=0.03
+
+            # Encourage forward motion (position change)
+            if a == 0 and s_prime[:2] != s[:2]:
+                r += 0.08
+
+            # Mild penalty for any turn (direction change)
+            if s[2] != s_prime[2] and a in [1, 2]:
+                r -= 0.02
+
+            # Small time penalty for each step
+            r -= 0.005
+*out of loop:*
+        if t != -1 and i != -1:
+            self.R[t, i] = r
+            if r > 0:  # episode ended by reaching the goal
+                self.success_count += 1 # debug
+                # self.Q[s[0], s[1], s[2], a] += self.alpha * 2.0 # incentive to read the goal state
+                steps_used = self.env.unwrapped.step_count
+                time_bonus = max(0, 1.0 - (steps_used / 3000))
+                self.Q[s[0], s[1], s[2], a] += self.alpha * time_bonus
+```
+=
+
+
+15===
+Set random spawn locations for every episode
+1 trial
+4800 episodes
+random seed every 80 episodes
+max steps 2000
+alpha=0.1 
+epsilon=0.6
+no decay
+self.Q = np.zeros((19, 19, 4, 3))
+```
+            # # Penalize actual forward wall bumps
+            # if a == 0 and self.is_facing_wall(obs["image"], s[2], s[0], s[1]):
+            #     r -=0.05
+
+            # Penalize not moving
+            if s[:2] == s_prime[:2]:
+                r -= 0.02  # Stronger penalty for staying in the same place and discourage spin+wait loops
+
+            # Encourage forward motion (position change)
+            if a == 0 and s_prime[:2] != s[:2]:
+                r += 0.05
+
+            # Mild penalty for any turn (direction change)
+            if s[2] != s_prime[2] and a in [1, 2]:
+                r -= 0.03 # More than the standing still penalty
+
+            # Small time penalty for each step
+            r -= 0.005
+*out of loop:*
+        if t != -1 and i != -1:
+            self.R[t, i] = r
+            if r > 0:  # episode ended by reaching the goal
+                self.success_count += 1 # debug
+                # self.Q[s[0], s[1], s[2], a] += self.alpha * 2.0 # incentive to read the goal state
+                steps_used = self.env.unwrapped.step_count
+                time_bonus = max(0, 1.0 - (steps_used / 3000))
+                self.Q[s[0], s[1], s[2], a] += self.alpha * time_bonus
+```
+=72%
+
+
+17mac=== 6hr26m
+Set random spawn locations for every episode
+1 trial
+252000 episodes
+random seed every 80 episodes
+max steps 1000
+alpha=0.1 
+epsilon=0.7
+no decay
+self.Q = np.zeros((19, 19, 4, 3))
+```
+            # Penalize not moving
+            if s[:2] == s_prime[:2]:
+                r -= 0.02  # Stronger penalty for staying in the same place and discourage spin+wait loops
+
+            # Encourage forward motion (position change)
+            if a == 0 and s_prime[:2] != s[:2]:
+                r += 0.05
+
+            # Mild penalty for any turn (direction change)
+            if s[2] != s_prime[2] and a in [1, 2]:
+                r -= 0.03 # More than the standing still penalty
+
+            # Small time penalty for each step
+            r -= 0.005
+*out of loop:*
+        if t != -1 and i != -1:
+            self.R[t, i] = r
+            if r > 0:  # episode ended by reaching the goal
+                self.success_count += 1 # debug
+                # self.Q[s[0], s[1], s[2], a] += self.alpha * 2.0 # incentive to read the goal state
+                steps_used = self.env.unwrapped.step_count
+                time_bonus = max(0, 1.0 - (steps_used / 3000))
+                self.Q[s[0], s[1], s[2], a] += self.alpha * time_bonus
+```
+
+17pc=== CRASHED
+*17mac but*
+Turn penalty -0.03 -> -0.01
+```
+            if s[2] != s_prime[2] and a in [1, 2]:
+                r -= 0.01
+```
+

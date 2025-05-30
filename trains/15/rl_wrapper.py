@@ -5,7 +5,7 @@ from tqdm import tqdm # training progress bar
 from minigrid.core.world_object import Goal # for randomize_agent_and_goal()
 
 # REMOVE ME FOR GITHUB (I'll no doubt forget)
-from ping_me import ping_dc # notify me on discord when training is complete
+from ping_me import ping_dc, ping_sms # notify me on discord when training is complete
 
 class RLWrapper(ABC):
     def __init__(self, env, trail_count : int, episode_count : int, randomize : bool):
@@ -14,12 +14,19 @@ class RLWrapper(ABC):
         self.episode_count = episode_count
         self.randomize = randomize
         self.trail_count = trail_count
+        if self.randomize:
+            self.seeds = np.random.randint(0, 1000, size=trail_count) # 1024, 8888
+            # self.seeds = [14, 24, 48]
+        else:
+            self.seeds = [14] * trail_count
         self.Q = np.zeros((19, 19, 4, 3)) #(19, 19, 4, 3) (x, y, direction, action) (x, y, d) <- state
         # self.Q = np.ones((19, 19, 4, 3)) * 0.5
         self.R = np.zeros((self.trail_count, self.episode_count)) # save the rewards for each episode for each trial for learning curve graph
+
         self.gamma = 0.95
         self.set_seed()
         # You need to set your specific hyperparams in child class
+
         self.success_count = 0 # debug  # total successes in the current trial
 
 
@@ -111,9 +118,10 @@ class RLWrapper(ABC):
             total_successes += self.success_count
         success_rate = total_successes / total_episodes
         print(f"Overall success rate: {total_successes}/{total_episodes} = {success_rate:.2%}")
-        ping_dc(f"✅ [PC] Training complete (SR:{total_successes}/{total_episodes})") # notify me on discord when training is complete
+        # ping_dc(f"✅ Training complete (SR:{total_successes}/{total_episodes})") # notify me on discord when training is complete
+        # ping_sms("SARSA", " ✅ Training complete") # text me when training is complete
 
-    def test(self, e : float = 0.6) -> None:
+    def test(self, e : float = 0.0) -> None:
         """
         For part b domain randomization. This tests a new env using the Q values we learned in trial()
         """
@@ -142,22 +150,7 @@ class RLWrapper(ABC):
         """
         agent = np.where(obs['image'][:, :, 2] == 10)
         return (int(agent[0][0]), int(agent[1][0]), int(obs['direction']))
-
-
-    def best_action(self, state : tuple[int], epsilon : float) -> int:
-        """
-        use epsilon greedy to generate the next best action based on Q values
-        """
-        exploit_prob = 1 - epsilon + epsilon / 3
-        if random.random() < exploit_prob:
-            #exploit
-            if np.all(self.Q[state] == 0.0):
-                return 2
-            return np.argmax(self.Q[state])
-        else:
-            #explore CHANGE: do we need to remove the best action?
-            return random.choice([0,1,2])
-
+        
 
     def best_action(self, state: tuple[int], epsilon: float) -> int:
         if np.random.rand() < epsilon:
@@ -188,8 +181,8 @@ class RLWrapper(ABC):
         Doesn't reset Q values, doesn't
         """
         self.obs, _ = self.env.reset(seed=s)
-        # if self.randomize:
-        #     self.obs, _ = self.randomize_agent_and_goal()
+        if self.randomize:
+            self.obs, _ = self.randomize_agent_and_goal()
         self.goal = np.where(self.obs['image'][:, :, 2] == 8)
         self.s_0 = self.format_state(self.obs)        
     

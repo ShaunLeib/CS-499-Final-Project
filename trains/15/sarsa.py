@@ -6,20 +6,19 @@ class SARSA(RLWrapper):
         super().__init__(env, trail_count, episode_count, randomize)
         self.alpha = 0.1
         self.epsilon = 0.6
-        self.decay = 1 # 1=unused
+        self.decay = 1#0.9984
     
     def episode(self, t: int, i : int) -> None:
         s = self.s_0 # init S
         a = self.best_action(s, self.epsilon) # choose A from S using epsilon-greedy policy
+        self.env.render() # show visuals
         total_reward = 0
-        consecutive_turns = 0
 
         terminated = False
         truncated = False
 
         while not terminated and not truncated: # loop until S terminates
             obs, r, terminated, truncated, _ = self.env.step(a) # take action A, oberse R, S'
-            self.env.render() # show visuals
             s_prime = self.format_state(obs)                    # extract S'
             a_prime = self.best_action(s_prime, self.epsilon)   # choose A' from S' using epsilon-greedy
 
@@ -27,19 +26,17 @@ class SARSA(RLWrapper):
             # if a == 0 and self.is_facing_wall(obs["image"], s[2], s[0], s[1]):
             #     r -=0.05
 
-            if a == 0 and s[:2] != s_prime[:2]: # reward any forward motion
-                r += 0.02   # heavier spin/stall penalty
+            # Penalize not moving
+            if s[:2] == s_prime[:2]:
+                r -= 0.02  # Stronger penalty for staying in the same place and discourage spin+wait loops
 
-            if s[:2] == s_prime[:2]: # penalize not moving spaces
-                r -= 0.01
+            # Encourage forward motion (position change)
+            if a == 0 and s_prime[:2] != s[:2]:
+                r += 0.05
 
-            # Check if this action is a turn
-            if a in [1, 2]:  # turn left or right
-                consecutive_turns += 1
-            else:
-                consecutive_turns = 0
-            if consecutive_turns >= 2:    # penalty for excessive spinning
-                r -= 0.01 * consecutive_turns  # Penalize 2nd+ consecutive turn
+            # Mild penalty for any turn (direction change)
+            if s[2] != s_prime[2] and a in [1, 2]:
+                r -= 0.03 # More than the standing still penalty
 
             # Small time penalty for each step
             r -= 0.005
@@ -74,7 +71,7 @@ class SARSA(RLWrapper):
                 self.Q[s[0], s[1], s[2], a] += self.alpha * 2.0 # incentive to read the goal state
                 steps_used = self.env.unwrapped.step_count
                 time_bonus = max(0, 1.0 - (steps_used / 3000))
-                time_bonus += 1.0  # Extra main reward?
+                time_bonus += 1.0  # Main reward?
                 self.Q[s[0], s[1], s[2], a] += self.alpha * time_bonus
                 # print(f" Total Reward: {total_reward} | test REWARD {r} | STEPS TO GOAL: {self.env.unwrapped.step_count}")
         else:

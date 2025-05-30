@@ -69,9 +69,8 @@ def part_a(num_trials = 50, num_episodes = 50):
     sarsa_agent = SARSA(train_env, num_trials, num_episodes, randomize = False)
     seed = sarsa_agent.set_seed()
     sarsa_agent.trial()
-    # sarsa_agent.visual(final_env)
+    sarsa_agent.visual(final_env)
     train_env.close()
-    # final_env.close()
 
     # Q-Learning-Lambda
     print("\nLambda Q-Learning")
@@ -92,10 +91,10 @@ def part_a(num_trials = 50, num_episodes = 50):
 def part_b(num_trials = 1, num_episodes = 5000):
     # SARSA
     print('SARSA')
-    train_env = gym.make("MiniGrid-FourRooms-v0", max_steps = 4000)
+    train_env = gym.make("MiniGrid-FourRooms-v0", max_steps = 2000)
     train_env = SymbolicObsWrapper(train_env)
     # train_env.reset(seed=1499) # omit line for random seed
-    test_env = gym.make("MiniGrid-FourRooms-v0", max_steps = 4000, render_mode = "human") # add  render_mode = "human" for visual
+    test_env = gym.make("MiniGrid-FourRooms-v0", max_steps = 2000, render_mode = "human") # add  render_mode = "human" for visual
     test_env = SymbolicObsWrapper(test_env)
     # test_env.reset(seed=1499) # omit line for random seed
 
@@ -126,18 +125,17 @@ def part_b(num_trials = 1, num_episodes = 5000):
     # np.save("q_learning_agent.npy", q_learning_agent.Q)
     # q_learning_agent.Q = np.load("q_learning_agent.npy")
 
-    # q_learning_agent.set_seed(seed) # test both agents using same seed
     # q_learning_agent.test()
     # if q_learning_agent.test_reward > 0.95:
     #     q_learning_agent.visual(test_env, 0.6)
 
-    # train_env.close()
-    # test_env.close()
+    train_env.close()
+    test_env.close()
 
 
 def main() -> None:
     # part_a(1, 80)
-    part_b(1, 3200)
+    part_b(1, 4800)
 
 
 if __name__ == "__main__":
