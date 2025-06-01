@@ -4,15 +4,16 @@ from rl_wrapper import RLWrapper
 class QLearningLambda(RLWrapper):
     def __init__(self, env, trail_count : int, episode_count : int, randomize : bool):
         super().__init__(env, trail_count, episode_count, randomize)
-        self.alpha = 0.01
-        # self.alpha = 0.00001 # 0.05 for part a
+        self.alpha = 0.00001
+        # self.alpha =  0.01 for part a
         self.lamb = 0.5
-        self.epsilon = 0.6 # 0.6 for part a
+        self.epsilon = 0.7 # 0.6 for part a
         self.e = np.zeros((19, 19, 4, 3)) # Trace variable (19, 19, 4,  3) (x, y, direction, action)
         
 
     def episode(self, t: int, i : int) -> None:
         s = self.s_0
+        self.e = np.zeros((19, 19, 4, 3))
         a = self.best_action(s, 0.0) 
         terminated = False # Reach goal
         truncated = False # max_steps reached
@@ -20,13 +21,15 @@ class QLearningLambda(RLWrapper):
             obs, r, terminated, truncated, _ = self.env.step(a)
             self.env.render()
 
-            s_prime = self.format_state(obs)
-            a_prime = self.best_action(s_prime, self.epsilon)       
-            a_star = self.best_action(s_prime, 0.0)
+            s_prime = self.format_state(obs) #s'
+            a_prime = self.best_action(s_prime, self.epsilon) #a'       
+            a_star = self.best_action(s_prime, 0.0) #a*
+
+            #time penalty
+            r -= 0.002
 
             # Calculate TD error
             err = r + self.gamma*self.Q[s_prime[0], s_prime[1], s_prime[2], a_star] - self.Q[s[0], s[1], s[2], a]
-            # print(f"{err =}")
 
             # Update eligibility trace for visiting this state
             self.e[s[0], s[1], s[2], a] += 1 
