@@ -24,7 +24,7 @@ class SARSA(RLWrapper):
             # Q(S,A) ← Q(S,A) + alpha [R + gamma Q(S', A') − Q(S,A)]
             q_curr = self.Q[s[0], s[1], s[2], a]                            # Q(S,A)
             q_next = self.Q[s_prime[0], s_prime[1], s_prime[2], a_prime]    # Q(S', A')
-            td_err = (r + self.gamma * q_next) - q_curr                     # [R + gamma Q(S', A') − Q(S,A)]
+            td_err = (r + self.gamma * q_next - q_curr)                     # [R + gamma Q(S', A') − Q(S,A)]
             self.Q[s[0], s[1], s[2], a] += self.alpha * td_err
 
             # # TD Update: Q(S,A) ← Q(S,A) + α [R + γ Q(S′, A′) − Q(S,A)]
