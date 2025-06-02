@@ -6,6 +6,10 @@ from sarsa import SARSA
 from q_learning_lambda import QLearningLambda
 import matplotlib.pyplot as plt
 
+# REMOVE ME FOR GITHUB (I'll no doubt forget)
+from ping_me import ping_dc # notify me on discord when training is complete
+import time
+
 #Actions = {"left" : 0, "right" : 1, "forward" : 2} -> Actions = {"left" : 2, "right" : 1, "forward" : 0}
 
 # Map of object type to integers
@@ -67,11 +71,14 @@ def part_a(num_trials = 50, num_episodes = 50):
     final_env = SymbolicObsWrapper(final_env)
 
     sarsa_agent = SARSA(train_env, num_trials, num_episodes, randomize = False)
-    seed = sarsa_agent.set_seed()
-    sarsa_agent.trial()
+    seed = sarsa_agent.set_seed(15)
+    # sarsa_agent.trial()
     # sarsa_agent.visual(final_env)
     train_env.close()
-    # final_env.close()
+    final_env.close()
+
+    #TEMP
+    num_trials = 1
 
     # Q-Learning-Lambda
     print("\nLambda Q-Learning")
@@ -92,27 +99,60 @@ def part_a(num_trials = 50, num_episodes = 50):
 def part_b(num_trials = 1, num_episodes = 5000):
     # SARSA
     print('SARSA')
-    train_env = gym.make("MiniGrid-FourRooms-v0", max_steps = 4000)
+    train_env = gym.make("MiniGrid-FourRooms-v0", max_steps = 2000)
     train_env = SymbolicObsWrapper(train_env)
     # train_env.reset(seed=1499) # omit line for random seed
-    test_env = gym.make("MiniGrid-FourRooms-v0", max_steps = 4000, render_mode = "human") # add  render_mode = "human" for visual
+    test_env = gym.make("MiniGrid-FourRooms-v0", max_steps = 2000)#, render_mode = "human") # add  render_mode = "human" for visual
     test_env = SymbolicObsWrapper(test_env)
     # test_env.reset(seed=1499) # omit line for random seed
 
-    
+    # 1 for training mode, 0 for test (from file)
+    train = 0
+
     sarsa_agent = SARSA(train_env, num_trials, num_episodes, randomize = True)
-    sarsa_agent.trial()
-    np.save("sarsa_qtable.npy", sarsa_agent.Q)
-    # sarsa_agent.Q = np.load("sarsa_qtable.npy")
+    train_epsilon = sarsa_agent.epsilon # REMOVE ME FOR GITHUB required for ping_dc because it gets overwritten with `test_epsilon = 0.05`
+    if train:
+        sarsa_agent.trial()
+    else:
+        sarsa_agent.Q = np.load("trains/sarsa_qtable_epi4000_a00008_e09_d1_steps2000_1748900091.npy")
     seed = sarsa_agent.set_seed() # set set foor Q lambda to use same seed?
 
-    test_epsilon = 0.1
-    sarsa_agent.test(test_epsilon)
-    if True: # will be: if sarsa_agent.test_reward > 0.95:
-        sarsa_agent.visual(test_env, test_epsilon)
+    test_epsilon = 0.05
+    sarsa_agent.test(test_epsilon, 14)
+    # sarsa_agent.test(test_epsilon, 15)
+    # sarsa_agent.test(test_epsilon, 16)
+    # sarsa_agent.test(test_epsilon, 17)
+    # sarsa_agent.test(test_epsilon, 18)
+    # sarsa_agent.test(test_epsilon, 19)
+    # sarsa_agent.test(test_epsilon, 20)
+    # sarsa_agent.test(test_epsilon, 21)
+    
+    if train:
+        train_params = (f"epi{num_episodes}_a{sarsa_agent.alpha}_e{train_epsilon}_d{sarsa_agent.decay}").replace('.', '')
+        filename = f"sarsa_qtable_{train_params}_steps{sarsa_agent.env.unwrapped.step_count}_{int(time.time())}.npy"
+        np.save(f"trains/{filename}", sarsa_agent.Q)
+        ping_dc( # REMOVE ME FOR GITHUB
+            f"  Paramters of the run:\n"
+            f"    `{filename}`\n"
+            f"    Episodes: `{num_episodes}`\n"
+            f"    Alpha:    `{sarsa_agent.alpha}`\n"
+            f"    Epsilon:  `{train_epsilon}`\n"
+            f"    Decay:    `{sarsa_agent.decay}`\n"
+            f"    Steps to goal: `{sarsa_agent.env.unwrapped.step_count}`\n  ---"
+        )
+    
+    # if True: # will be: if sarsa_agent.test_reward > 0.95:
+    if (sarsa_agent.env.unwrapped.step_count < 2000):
+        visual_env = gym.make("MiniGrid-FourRooms-v0", max_steps=2000, render_mode="human") # visual_env created purely so it can have human visuals while test_env does not
+        visual_env = SymbolicObsWrapper(visual_env)
+        sarsa_agent.visual(visual_env, test_epsilon)
+        visual_env.close()
 
     train_env.close()
     test_env.close()
+    
+    # plot_learning_curve(sarsa_agent)
+
 
     # Q-learning-lambda
     # print("\nLambda Q-Learning")
@@ -136,9 +176,8 @@ def part_b(num_trials = 1, num_episodes = 5000):
 
 
 def main() -> None:
-    # part_a(1, 80)
-    part_b(1, 3200)
-
+    # part_a(10, 80)
+    part_b(1, 12000)
 
 if __name__ == "__main__":
     main()
