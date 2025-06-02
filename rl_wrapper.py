@@ -64,7 +64,7 @@ class RLWrapper(ABC):
         """
         self.test_reward = 0.0
         print(f"{self.seed = }")
-        self.epsilon = 0.6 # exploit more for testing? 
+        self.epsilon = 0.64 # exploit more for testing? 
         self.restore_init_env_state(self.seed)
         self.episode(-1, -1)
 
@@ -98,7 +98,7 @@ class RLWrapper(ABC):
                 return 2
             return np.argmax(self.Q[state])
         else:
-            #explore CHANGE: do we need to remove the best action?
+            #explore
             return random.choice([0,1,2])
 
 
