@@ -5,6 +5,7 @@ from minigrid.wrappers import SymbolicObsWrapper
 from sarsa import SARSA
 from q_learning_lambda import QLearningLambda
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 #Actions = {"left" : 0, "right" : 1, "forward" : 2} -> Actions = {"left" : 2, "right" : 1, "forward" : 0}
 
@@ -96,6 +97,7 @@ def part_b(num_trials = 1, num_episodes = 2000):
     sarsa_agent = SARSA(train_env, num_trials, num_episodes, randomize = True)
     # sarsa_agent.Q = np.load("sarsa_qtable.npy")
     sarsa_agent.trial()
+    plot_learning_curve(sarsa_agent)
     np.save("sarsa_qtable.npy", sarsa_agent.Q)
 
     for _ in range(50):
@@ -112,9 +114,10 @@ def part_b(num_trials = 1, num_episodes = 2000):
     train_env = SymbolicObsWrapper(train_env)
 
     q_learning_agent = QLearningLambda(train_env, num_trials, num_episodes, randomize = True)
-    q_learning_agent.Q = np.load("qlamb_qtable_3.npy")
-    # q_learning_agent.trial()
-    # np.save("qlamb_qtable_2.npy", q_learning_agent.Q)  
+    # q_learning_agent.Q = np.load("qlamb_qtable.npy")
+    q_learning_agent.trial()
+    plot_learning_curve(q_learning_agent)
+    # np.save("qlamb_qtable.npy", q_learning_agent.Q)  
 
     rewards = []
     for _ in range(50):
@@ -125,10 +128,28 @@ def part_b(num_trials = 1, num_episodes = 2000):
 
     train_env.close()
 
+def generate_heat_map():
+    agent_q_values = np.load("qlamb_qtable.npy")
+    V = agent_q_values.max(axis=-1)  # Shape becomes (19, 19, 4)
+
+    # For each direction, create a separate heatmap
+    fig, axs = plt.subplots(2, 2, figsize=(12, 10))
+    directions = ['N', 'E', 'S', 'W']
+
+    for i, ax in enumerate(axs.flat):
+        sns.heatmap(V[:, :, i], ax=ax, cmap='viridis', cbar=True)
+        ax.set_title(f'Value Function - Facing {directions[i]}')
+        ax.invert_yaxis()  # Optional: origin at bottom-left
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+
+    plt.tight_layout()
+    plt.show()
 
 def main() -> None:
     # part_a()
-    part_b()
+    # part_b()
+    generate_heat_map()
 
 if __name__ == "__main__":
     main()

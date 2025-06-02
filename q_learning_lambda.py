@@ -25,7 +25,7 @@ class QLearningLambda(RLWrapper):
             a_prime = self.best_action(s_prime, self.epsilon) #a'       
             a_star = self.best_action(s_prime, 0.0) #a*
 
-            #time penalty
+            #time penalty only for part b
             r -= 0.002
 
             # Calculate TD error
