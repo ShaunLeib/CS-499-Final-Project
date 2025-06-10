@@ -4,11 +4,11 @@ from rl_wrapper import RLWrapper
 class QLearningLambda(RLWrapper):
     def __init__(self, env, trail_count : int, episode_count : int, randomize : bool):
         super().__init__(env, trail_count, episode_count, randomize)
-        self.alpha = 0.00001
-        # self.alpha =  0.01 for part a
+        self.alpha = 0.001 # 0.01 for part a
         self.lamb = 0.5
-        self.epsilon = 0.7 # 0.6 for part a
+        self.epsilon = 0.7 # 0.6 for part a with no decay
         self.e = np.zeros((19, 19, 4, 3)) # Trace variable (19, 19, 4,  3) (x, y, direction, action)
+        self.decay = 0.9995
         
 
     def episode(self, t: int, i : int) -> None:
@@ -47,6 +47,9 @@ class QLearningLambda(RLWrapper):
             # set s <- s' and a <- a'
             s = s_prime
             a = a_prime
+
+        self.epsilon = max(0.1, self.epsilon * self.decay)       
+
         if t != -1 and i != -1:
             self.R[t, i] = r
         else:

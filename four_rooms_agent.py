@@ -1,4 +1,3 @@
-import sys
 import gymnasium as gym
 import numpy as np
 from minigrid.wrappers import SymbolicObsWrapper
@@ -139,7 +138,6 @@ def generate_heat_map():
     for i, ax in enumerate(axs.flat):
         sns.heatmap(V[:, :, i], ax=ax, cmap='viridis', cbar=True)
         ax.set_title(f'Value Function - Facing {directions[i]}')
-        ax.invert_yaxis()  # Optional: origin at bottom-left
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
 
@@ -148,7 +146,7 @@ def generate_heat_map():
 
 def main() -> None:
     # part_a()
-    # part_b()
+    part_b()
     generate_heat_map()
 
 if __name__ == "__main__":
