@@ -1,6 +1,8 @@
 import numpy as np
 import random
 from abc import ABC, abstractmethod
+from minigrid.core.world_object import Goal # for randomize_agent_and_goal()
+from tqdm import tqdm # training progress bar
 
 class RLWrapper(ABC):
     def __init__(self, env, trail_count : int, episode_count : int, randomize : bool):
@@ -19,7 +21,7 @@ class RLWrapper(ABC):
     @abstractmethod
     def episode(self, t: int, i : int) -> None:
         """
-        Implement in your class
+        Implement in each class
         """
         pass
 
@@ -48,23 +50,36 @@ class RLWrapper(ABC):
             - New seed every episode for domain randomization
             - Q values are saved for each episode & aren't reset (only 1 trial)
         """
-        for t in range(self.trail_count):
-            self.reset_env(self.seed)     
-            for i in range(self.episode_count):
-                if self.randomize:
-                    self.set_seed()
+        self.rand_every_n_episodes = 1 # keep <100
+        
+        trial_iter = tqdm(range(self.trail_count), desc=f"Trials")
+        for t in trial_iter:
+            self.set_seed() # 14 move 2 quadrants, 137 move 1 quadrant, 1018 same quadrant, 4209 middle corners of spawn removed
+            self.reset_env(self.seed)
+            
+            episode_iter = tqdm(range(self.episode_count), desc=f"Trial {t+1}/{self.trail_count}", leave=False) # training progress bar
+            for i in episode_iter:
+                if self.randomize: # part b
+                    if i % self.rand_every_n_episodes == 0:   # regen full env (new walls) every _ episodes
+                        self.set_seed()
+                        self.restore_init_env_state(self.seed)
+                    # self.set_seed(1499) # 14 move 2 quadrants, 137 move 1 quadrant, 1018 same quadrant, 4209 middle corners of spawn removed
+                    else:
+                        self.restore_init_env_state(self.seed)
+                        # self.reset_agent_and_goal(self.seed)  # reuse wall layout, just move agent/goal
+                else: # part a
+                    self.restore_init_env_state(self.seed)
                 self.episode(t, i)
-                print(f"{t} {i} : {self.R[t, i]}")
-                self.restore_init_env_state(self.seed)
 
 
-    def test(self) -> None:
+    def test(self, e : float = 0.6, s : int = 14) -> None:
         """
         For part b domain randomization. This tests a new env using the Q values we learned in trial()
         """
         self.test_reward = 0.0
-        print(f"{self.seed = }")
-        self.epsilon = 0.64 # exploit more for testing? 
+        self.epsilon = e # exploit more for testing
+        self.seed = s
+        print(f"tst{self.seed = }")
         self.restore_init_env_state(self.seed)
         self.episode(-1, -1)
 
@@ -74,7 +89,7 @@ class RLWrapper(ABC):
         Uses a new environment to show visually the learned policy
         """
         self.env = new_env
-        self.epsilon = e # only exploit for demonstration? 
+        self.epsilon = e # only exploit for demonstration
         self.restore_init_env_state(self.seed)
         self.episode(-1, -1)
 
@@ -86,7 +101,7 @@ class RLWrapper(ABC):
         agent = np.where(obs['image'][:, :, 2] == 10)
         return (int(agent[0][0]), int(agent[1][0]), int(obs['direction']))
     
-    
+
     def best_action(self, state : tuple[int], epsilon : float) -> int:
         """
         use epsilon greedy to generate the next best action based on Q values
@@ -116,23 +131,70 @@ class RLWrapper(ABC):
         return state_action_pairs
     
 
+    def randomize_agent_and_goal(self): # UNUSED FOR FINAL TESTS
+        # Randomizes agent and goal positions **without modifying format_state behavior**.
+        # Only uses env.unwrapped to modify grid, then returns a valid symbolic observation.
+        if not self.randomize:
+            return self.obs, {}
+
+        env = self.env.unwrapped  # temp peek for setup
+
+        # Place agent (internally sets agent_pos and agent_dir)
+        env.place_agent()
+
+        # Remove previous goal, if exists
+        if hasattr(env, 'goal_pos') and env.goal_pos is not None:
+            env.grid.set(*env.goal_pos, None)
+
+        # Place a new goal object
+        goal = Goal()
+        env.goal_pos = env.place_obj(goal, max_tries=100) # randomly place
+
+        # Get symbolic obs again AFTER modifying the internal env
+        obs, _ = self.env.reset()  # regenerate using symbolic wrapper pipeline
+        self.obs = obs
+        return obs, {}
+
+
     def restore_init_env_state(self, s : int) -> None:
         """
         Used to reset episode to og starting locations
-        Doesn't reset Q values, doesn't
+        Doesn't reset Q values
         """
-        obs, _ = self.env.reset(seed=s)
-        self.obs = obs
+        self.obs, _ = self.env.reset(seed=s)
         self.goal = np.where(self.obs['image'][:, :, 2] == 8)
         self.s_0 = self.format_state(self.obs)        
-    
 
-    def reset_env(self, s : int) -> None:
+    def reset_env(self, s: int) -> None:
         """
-        Reset Q values and four rooms environment
-        Randomizes acording to seed (s) the agent , goal, and wall locations
+        Fully reset Q-values and environment using the provided seed.
+        This includes new wall layout, new agent, and new goal.
         """
-        self.Q = np.zeros((19, 19, 4, 3)) #(19, 19, 4, 3) (x, y, direction, action) (x, y, d) <- state
-        self.restore_init_env_state(s)
+        self.Q = np.zeros((19, 19, 4, 3)) #(19, 19, 4, 3) (x, y, direction, action) (x, y, d) <- state  (Reset Q-values)
+        self.restore_init_env_state(s) # reset episode to starting locations
+
+    def reset_agent_and_goal(self, s: int) -> None: # UNUSED FOR FINAL TESTS
+        """
+        Re-randomize agent and goal positions within the existing wall layout.
+        """
+        if not self.randomize:
+            return
+
+        env = self.env.unwrapped
+
+        # Place agent
+        env.place_agent()
+
+        # Remove old goal
+        if hasattr(env, 'goal_pos') and env.goal_pos is not None:
+            env.grid.set(*env.goal_pos, None)
+
+        # Place new goal
+        from minigrid.core.world_object import Goal
+        goal = Goal()
+        env.goal_pos = env.place_obj(goal, max_tries=100)
+
+        # Refresh symbolic observation
+        self.obs, _ = self.env.reset()
         self.goal = np.where(self.obs['image'][:, :, 2] == 8)
-        self.s_0 = self.format_state(self.obs)   
+        self.s_0 = self.format_state(self.obs)
